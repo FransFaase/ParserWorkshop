@@ -1,5 +1,3 @@
-# ParserWorkshop
-Notes and online interactive parser for a workshop on parsers
 # Parser Workshop
 Notes and online interactive parser for a workshop on parsers.
 This workshop will be given online on March 20, 2021 as part of the CyberSaturdays of
