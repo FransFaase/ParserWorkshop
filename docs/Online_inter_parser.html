@@ -72,10 +72,10 @@ function print_rule_options(rule)
 	return s
 }
 
-function make_rule(children, i, grammar, in_nt)
+function make_rule(children, nr, grammar, in_nt)
 {
-	if (i >= children.length) return undefined
-	var rule = children[i]
+	if (nr >= children.length) return undefined
+	var rule = children[nr]
 
 	if (rule == undefined)
 	{
@@ -151,7 +151,7 @@ function make_rule(children, i, grammar, in_nt)
 			for (var i = 0; i < this.value.length; i++)
 			{
 				if (i > 0) s += " |"
-				s += this.value[i].rule.print() + " [" + this.value[i].tree_name + "]"
+				s += (this.value[i].rule != undefined ? this.value[i].rule.print() : "") + " [" + this.value[i].tree_name + "]"
 			}
 			return s + ")"+ print_rule_options(this);
 		}
@@ -160,10 +160,17 @@ function make_rule(children, i, grammar, in_nt)
 		{
 			var subrule = rule.children[i]
 			if (subrule.type == "tree" && subrule.name == "rule")
-			    result.value.push({ tree_name:"", rule:make_rule(subrule.children[0].children, 0, grammar, in_nt)})
+			{
+				var treename = subrule.children[1]
+				if (treename != undefined && treename.type == "tree")
+					treename = treename.children[0]
+				if (treename != undefined)
+					treename = treename.type == "ident" ? treename.value : undefined
+			    result.value.push({ tree_name:treename, rule:make_rule(subrule.children[0] != undefined ? subrule.children[0].children : [], 0, grammar, in_nt)})
+			}
 		}
 	}
-	result.next = make_rule(children, i+1, grammar, in_nt)
+	result.next = make_rule(children, nr+1, grammar, in_nt)
 	return result
 }
 
@@ -325,7 +332,7 @@ function expecting(s)
 function report_expecting()
 {
  	var left = buffer.length - expect_pos
- 	var s = expect_line_column + " at: (" + left + ") " + (left < 10 ? buffer.substr(expect_pos, left) + "<eof>" : buffer.substr(expect_pos, 10)).replace("\n", "\\n")
+ 	var s = expect_line_column + " at: " + (left < 10 ? buffer.substr(expect_pos, left) + "<eof>" : buffer.substr(expect_pos, 10)).replaceAll("\n", "\\n")
  	for (var i = 0; i < expects.length; i++)
  		s += "\n  " + expects[i]
 	return s
@@ -580,6 +587,7 @@ function parse_rule(rule, prev_parts, tree_name, rtree, grammar)
 			else if (parse_rule(rule.next, prev_parts, tree_name, rtree, grammar))
 				return true
 		}
+		restore_pos(sp)
 		return false
 	}
 	else if (rule.kind == RK_GROUP)
@@ -776,7 +784,7 @@ function parse_input()
 		document.P.output.value = report_expecting()
 		return
 	}
-	document.P.output.value = input_tree.print()
+	document.P.output.value = input_tree != undefined ? input_tree.print() : ""
 }
 
 
@@ -812,7 +820,7 @@ This was created as part of <A HREF="https://fransfaase.github.io/ParserWorkshop
 
 <H2><A NAME="grammar">Grammar description</A></H2>
 
-To parse input that consists of an integer, an ident and a string, the
+To parse input that consists of an integer, an identifier and a string, the
 following grammar can be used:
 <PRE>
 root : int ident string .
@@ -859,23 +867,23 @@ In this grammar rule, literal strings, between double quotes are used as
 additional terminals in the grammar. Literal strings that start with an
 alphabetic character are treated as keywords, meaning that it should be
 terminated with a non-identifier character. It also means that it is excluded
-as a valid ident. An example of input that should parse correctly is:
+as a valid identifier. An example of input that should parse correctly is:
 <PRE>
 if ( a )
 </PRE>
 The following input is not parsed correctly, because although it starts with
-<TT>if</TT> it does not start with an ident that is equal to <TT>if</TT>
+<TT>if</TT> it does not start with an identifier that is equal to <TT>if</TT>
 <PRE>
 iff ( a )
 </PRE>
 The following input does not parse correctly, because <TT>if</TT> is no longer
-a valid ident:
+a valid identifier:
 <PRE>
 if ( if )
 </PRE>
 <P>
-To parse input that consists an optional integer, one or more idents, and zero
-or more strings, the following grammar can be used:
+To parse input that consists an optional integer, one or more identifiers, and
+zero or more strings, the following grammar can be used:
 <PRE>
 root : int OPT 
        ident SEQ
@@ -899,7 +907,7 @@ literal is used as a separator between the elements. An example input is:
 The <TT>LIST</TT> is a shorthand for a chain sequence with a comma.
 <P>
 To parse input that consists of intermixed list of integers and identifiers
-(separated with commas), the following grammar can be used:
+(separated by commas), the following grammar can be used:
 <PRE>
 root : ( int | ident ) LIST .
 </PRE>
@@ -914,8 +922,8 @@ be used to combine several production rules for one non-terminal together.
 When the input parses correctly, an abstract syntax tree is displayed in the
 text area to the right of the input. To annotate this abstract syntax tree, it
 is possible to annotate the production rules with identifiers between square
-brackets. An example of this is given in the grammar below, a simply grammar
-for expressions to add, multiply, and divide numbers:
+brackets. An example of this is given in the grammar below, a grammar for
+simple expressions to add, multiply, and divide numbers:
 <PRE>
 root : E .
 E : F CHAIN "+" [sum].
@@ -924,12 +932,12 @@ T : int | "(" E ")".
 </PRE>
 <P>
 Whitespace is accepted between all the terminals. As whitespace the space,
-the tab and the newline characters are excepted and also the two types of
+the tab and the newline characters are accepted and also the two types of
 comments that are allowed in the C-language: Any text between <TT>/*</TT> and
 <TT>*/</TT> and the remainder of the line followed by a <TT>//</TT> sequence.
 <P>
 For educational purposes, the rules with respect to the specification of
-terminals is limited. For more options, see the C++ implementation of
+terminals are limited. For more options, see the C++ implementation of
 <A HREF="https://github.com/FransFaase/IParse">IParse</A> and the C
 implementation of <A HREF="https://github.com/FransFaase/RawParser"
 >RawParser</A>.
