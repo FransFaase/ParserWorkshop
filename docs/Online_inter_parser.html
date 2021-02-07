@@ -181,7 +181,7 @@ function make_grammar(tree)
 			for (var i = 0; i < this.non_terminals.length; i++)
 				if (this.non_terminals[i].name == n)
 					return this.non_terminals[i]
-			new_nt = { name:n, normal:[], recursive:[], used_in:[] }
+			new_nt = { name:n, normal:[], recursive:[], used_in:[], nr:(this.non_terminals.length + 2) }
 			this.non_terminals.push(new_nt)
 			return new_nt
 		},
@@ -385,13 +385,26 @@ function skip_space()
 	}
 }
 
+var cache
+
 function accept_string()
 {
+	if (cache[0].pos == pos)
+	{
+		if (cache[0].success)
+		{
+			restore_pos(cache[0].endsp)
+			return cache[0].result
+		}
+		else
+			return undefined
+	}
 	if (ch != 34)
 	{
 		expecting("<string>")
 		return undefined
 	}
+	cache[0].pos = pos
 	var sp = save_pos()
 	next()
 	var str = ""
@@ -403,11 +416,15 @@ function accept_string()
 	if (ch != 34)
 	{
 		restore_pos(sp)
+		cache[0].success = false
 		expecting("<string> (not terminated)")
 		return undefined
 	}
 	next()
 	skip_space()
+	cache[0].success = true
+	cache[0].endsp = save_pos()
+	cache[0].result = str
 	return str
 }
 
@@ -415,7 +432,12 @@ function accept_id()
 {
 	if (ident_start_char(ch))
 	{
-		var sp = save_pos()
+		if (cache[1].pos == pos)
+		{
+			restore_pos(cache[1].endsp)
+			return cache[1].result
+		}
+		cache[1].pos = pos
 		var id = buffer[pos]
 		next()
 		while (ident_start_char(ch) || (48 <= ch && ch <= 57))
@@ -424,6 +446,8 @@ function accept_id()
 			next()
 		}
 		skip_space()
+		cache[1].endsp = save_pos()
+		cache[1].result = id
 		return id
 	}
 	return undefined
@@ -511,6 +535,19 @@ function parse_term(term, rtree, grammar)
 
 function parse_nt(non_term, rtree, grammar)
 {
+	var c = cache[non_term.nr]
+	if (c.pos == pos)
+	{
+		if (c.success)
+		{
+			rtree.result = c.result
+			restore_pos(c.endsp)
+			return true
+		}
+		return false
+	}
+	c.pos = pos
+	c.success = false
 	for (var i = 0; i < non_term.normal.length; i++)
 		if (parse_rule(non_term.normal[i].rule, undefined, non_term.normal[i].tree_name, rtree, grammar))
 		{
@@ -526,7 +563,10 @@ function parse_nt(non_term, rtree, grammar)
 						break;
 				}
 			}
-		
+			
+			c.success = true
+			c.endsp = save_pos()
+			c.result = rtree.result
 			return true
 		}
 	//expecting("non terminal: "+non_term.name)
@@ -663,6 +703,9 @@ function parse_text(s, grammar)
 	expects = []
 	ch = buffer.length == 0 ? 0 : buffer.charCodeAt(0)
 	skip_space()
+	cache = []
+	for (var i = 0; i < grammar.non_terminals.length + 2; i++)
+		cache.push({ pos:-1, success:false, endsp:undefined, result:undefined})
 	rtree = { result:undefined }
 	if (parse_nt(grammar.find_nt("root"), rtree, grammar) && ch == 0)
 		return rtree.result
