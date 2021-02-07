@@ -1,17 +1,216 @@
 <html><head>
-<title>Parser Workshop</title>
+<title>Workshop: A modern approach to parsing</title>
 </head><body>
 
-<h1>Parser Workshop</h1>
+<h1>Workshop: A modern approach to parsing</h1>
 
-Notes and online interactive parser for a workshop on parsers.
-This workshop will be given online on March 20, 2021 as part of the CyberSaturdays of
-<a href="https://tkkrlab.nl/">TkkrLab</a>
-<P>
-The workshop consists of:
+(This workshop will be given online on March 20, 2021 as part of the CyberSaturdays of
+<a href="https://tkkrlab.nl/">TkkrLab</a>. A link to a succesful recording will
+be added.)
+
+<h2>Contents</h2>
+
 <ul>
-<li>Introduction and history of parsing
-<li>Tutorial on writting grammars with <a href="Online_inter_parser.html">an online interactive parser</a>
-<li>Presentation of <a href="https://github.com/FransFaase/IParse">IParse</a>
-<li>Presentation of <a href="https://github.com/FransFaase/RawParser">RawParser</a>
+<li><a href="#intro">Introduction and history of parsing</a>
+<li>Tutorial on writing grammars with <a href="Online_inter_parser.html">an online interactive parser</a>
+<li><a href="#iparse">Presentation</a> of <a href="https://github.com/FransFaase/IParse">IParse</a>
+<li><a href="#rawparser">Presentation</a> of <a href="https://github.com/FransFaase/RawParser">RawParser</a>
 </ul>
+
+<pre>
+
+
+
+
+
+
+
+
+
+</pre>
+
+<h2><a name="intro">Introduction: What is parsing</a></h2>
+
+Parsing is the process of
+<ul>
+<li>reading a textual input
+<li>according to <a href="https://en.wikipedia.org/wiki/Formal_grammar">a formal grammar</a>
+<li>into <a href="https://en.wikipedia.org/wiki/Abstract_syntax_tree">an abstract syntax tree</a>
+</ul>
+<p>
+The abstract syntax tree can used:
+<ul>
+<li>As input for an interpreter
+<li>First step of a compiler
+</ul>
+
+<pre>
+
+
+
+
+
+
+
+
+
+</pre>
+
+<h2>Parsing algorithms</h2>
+
+In the early days parsing algorithms were designed with:
+<ul>
+<li>limited amount of memory
+<li>file based: reading character-by-character
+</ul>
+<p>
+Two passes:
+<ul>
+<li>Lexical: <a href="https://en.wikipedia.org/wiki/Regular_grammar">regular grammars</a>
+<li>Syntaxical: <a href="https://en.wikipedia.org/wiki/Context-free_grammar">contex-free grammars</a>
+</ul>
+
+<pre>
+
+
+
+
+
+
+
+
+
+</pre>
+
+<h2><a href="https://en.wikipedia.org/wiki/LL_parser">LL parser</a></h2>
+
+LL stands for Left-to-right, Leftmost derivation.<br>
+<a href="https://en.wikipedia.org/wiki/Top-down_parsing">Top-down parser</a>
+
+<h2><a href="https://en.wikipedia.org/wiki/LALR_parser">LALR parser</a></h2>
+
+LALR stands for Look-Ahead, Left-to-right, Rightmost derivation in reverse.<br>
+<a href="https://en.wikipedia.org/wiki/Bottom-up_parsing">bottom-up parser</a>
+
+<pre>
+
+
+
+
+
+
+
+
+
+</pre>
+
+<h2>Common tools</h2>
+
+<a href="https://en.wikipedia.org/wiki/Yacc">Yacc</a>
+(<a href="https://en.wikipedia.org/wiki/GNU_Bison">GNU Bison</a>) and
+<a href="https://en.wikipedia.org/wiki/Lex_(software)">Lex</a>
+(<a href="https://en.wikipedia.org/wiki/Flex_(lexical_analyser_generator)">Flex</a>)
+<p>
+Common problems:
+<ul>
+<li>Lots of grammar rules
+<li>Shift/reduce conflicts
+<li>Scanner states
+</ul>
+
+<pre>
+
+
+
+
+
+
+
+
+
+</pre>
+
+<h2>Modern approach</h2>
+
+<ul>
+<li>Input in memory
+<li>Memory no longer an issue
+<li>Scanner called from parser
+<li>User-friendly grammar specification
+<li>Back-tracking with <a href="https://en.wikipedia.org/wiki/Memoization">memoization</a>
+</ul>
+<p>
+Note:
+<ul>
+<li>Highest performance: hand-crafted parsers
+<li>Good for (interpretted) scripting languages<br>
+	(<a href="https://www.iwriteiam.nl/MySample.html">MySample</A> editor)
+<li><a href="https://en.wikipedia.org/wiki/Spirit_Parser_Framework">Spirit Parser Framework</a>
+</ul>
+
+<pre>
+
+
+
+
+
+
+
+
+
+</pre>
+
+<h2>Interactive parser</h2>
+
+<a href="Online_inter_parser.html">an online interactive parser</a>
+
+<pre>
+
+
+
+
+
+
+
+
+
+</pre>
+
+<h2><a name="iparse" href="https://github.com/FransFaase/IParse">IParse</a></h2>
+
+<pre>
+git clone https://github.com/FransFaase/IParse
+cd IParse/software
+g++ -fno-operator-names all_IParse.cpp -o IParse
+cd ..
+software/IParse software/c.gr others/scan.pc -p scan_pc_output
+diff scan_pc_output others/scan_pc_output
+software/IParse software/c.gr others/scan.pc -unparse unparse_scan.pc
+diff unparse_scan.pc others/unparse_scan.pc
+</pre>
+
+
+<h2><a name="rawparser" href="https://github.com/FransFaase/RawParser">RawParser</a></h2>
+
+<pre>
+git clone https://github.com/FransFaase/RawParser
+cd RawParser/src
+gcc RawParser.c -o RawParser
+./RawParser
+</pre>
+
+<pre>
+
+
+
+
+
+
+
+
+
+</pre>
+<hr>
+Author: <a href="https://www.iwriteiam.nl/Frans.html">Frans</a><br>
+<a href="https://www.iwriteiam.nl/">Personal website:Frans</a>
+</body></html>
