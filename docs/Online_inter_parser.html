@@ -466,9 +466,15 @@ function accept_ident(grammar)
 
 function accept_int()
 {
+	var sp = save_pos()
+	var str = ""
+	if (ch == 45)
+	{
+		str = "-"
+		next()
+	}
 	if (48 <= ch && ch <= 57)
 	{
-		var str = ""
 		while (48 <= ch && ch <= 57)
 		{
 			str += buffer[pos]
@@ -477,6 +483,7 @@ function accept_int()
 		skip_space()
 		return parseInt(str)
 	}
+	restore_pos(sp)
 	expecting("<int>")
 	return undefined
 }
@@ -875,7 +882,7 @@ The element can be terminals and non-terminals. In this case it consists of thre
 terminals. At the end of the production rule a period is placed. There are
 three predefined terminals defined:
 <UL>
-<LI><TT>int</TT>: parses a positive whole number
+<LI><TT>int</TT>: parses a whole number
 <LI><TT>ident</TT>: parses a identifier, starting with an alphabetic character
 	or an underscore followed by zero or more alphabetic characts, underscores
 	or numerical characters.
