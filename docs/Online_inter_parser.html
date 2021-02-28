@@ -22,6 +22,11 @@ function string_tree(s)
 	return { type:"string", value:s, print:function() { return "string:\""+this.value+"\""; } }
 }
 
+function char_tree(s)
+{
+	return { type:"char", value:s, print:function() { return "char:'"+this.value+"'"; } }
+}
+
 function _tl_tree(t, n, c)
 {
 	return { type:t, name:n, children:c,
@@ -110,7 +115,7 @@ function make_rule(children, nr, grammar, in_nt)
 	
 	if (rule.type == "ident")
 	{
-		if (rule.value == "int" || rule.value == "string" || rule.value == "ident")
+		if (rule.value == "int" || rule.value == "string" || rule.value == "char" || rule.value == "ident" || rule.value == "eof")
 		{
 			result.kind = RK_TERM
 			result.value = rule.value
@@ -387,7 +392,7 @@ function skip_space()
 
 var cache
 
-function accept_string()
+function accept_string(quote)
 {
 	if (cache[0].pos == pos)
 	{
@@ -399,7 +404,7 @@ function accept_string()
 		else
 			return undefined
 	}
-	if (ch != 34)
+	if (ch != quote)
 	{
 		expecting("<string>")
 		return undefined
@@ -408,12 +413,19 @@ function accept_string()
 	var sp = save_pos()
 	next()
 	var str = ""
-	while (ch != 0 && ch != 34 && ch != 13)
+	while (ch != 0 && ch != quote && ch != 13)
 	{
+		if (ch == 92)
+		{
+			str += buffer[pos]
+			next()
+			if (ch == 0)
+				break
+		}
 		str += buffer[pos]
 		next()
 	}
-	if (ch != 34)
+	if (ch != quote)
 	{
 		restore_pos(sp)
 		cache[0].success = false
@@ -531,11 +543,23 @@ function parse_term(term, rtree, grammar)
 	}
 	if (term == "string")
 	{
-		var s = accept_string()
+		var s = accept_string(34)
 		if (s == undefined)
 			return false
 		rtree.result = string_tree(s)
 		return true
+	}
+	if (term == "char")
+	{
+		var s = accept_string(39)
+		if (s == undefined)
+			return false
+		rtree.result = char_tree(s)
+		return true
+	}
+	if (term == "eof")
+	{
+		return ch == 0
 	}
 	return false
 }
@@ -632,6 +656,11 @@ function parse_rule(rule, prev_parts, tree_name, rtree, grammar)
 					return true
 			}
 			else if (parse_rule(rule.next, prev_parts, tree_name, rtree, grammar))
+				return true
+		}
+		else if (rule.optional)
+		{
+			if (parse_rule(rule.next, prev_parts, tree_name, rtree, grammar))
 				return true
 		}
 		restore_pos(sp)
@@ -886,8 +915,10 @@ three predefined terminals defined:
 <LI><TT>ident</TT>: parses a identifier, starting with an alphabetic character
 	or an underscore followed by zero or more alphabetic characts, underscores
 	or numerical characters.
-<LI><TT>string</TT>: parses a string surrounded with double quotes. Escape
-	characters are not supported
+<LI><TT>string</TT>: parses a string surrounded with double quotes.
+	The back-slash character acts as an escape character.
+<LI><TT>char</TT>: parses a character surrounded with single quotes.
+	The back-slash character acts as an escape character.
 </UL>
 An example input that should parse correctly is:
 <PRE>
