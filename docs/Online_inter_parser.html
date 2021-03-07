@@ -1,30 +1,34 @@
 <HTML><HEAD>
+<SCRIPT SRC="jquery-3.6.0.min.js"></SCRIPT>
+<SCRIPT SRC="http://d3js.org/d3.v3.min.js"></SCRIPT>
+<SCRIPT SRC="d3Tree.js"></SCRIPT>
+<link rel="stylesheet" type="text/css" href="tree-viewer.css">
 <SCRIPT>
 <!--
 
 function int_tree(i)
 {
-	return { type:"int", value:i, print:function() { return "int:"+this.value; } }
+	return { type:"int", value:i, print:function() { return "int:"+this.value; }, transf:function() { return { name:("int:" + this.value), children:[]} } }
 }
 
 function double_tree(d)
 {
-	return { type:"double", value:d, print:function() { return "double:"+this.value; } }
+	return { type:"double", value:d, print:function() { return "double:"+this.value; }, transf:function() { return { name:("double:" + this.value), children:[]} } }
 }
 
 function ident_tree(n)
 {
-	return { type:"ident", value:n, print:function() { return "ident:"+this.value; } }
+	return { type:"ident", value:n, print:function() { return "ident:"+this.value; }, transf:function() { return { name:("ident:" + this.value), children:[]} } }
 }
 
 function string_tree(s)
 {
-	return { type:"string", value:s, print:function() { return "string:\""+this.value+"\""; } }
+	return { type:"string", value:s, print:function() { return "string:\""+this.value+"\""; }, transf:function() { return { name:("string:\"" + this.value + "\""), children:[]} } }
 }
 
 function char_tree(s)
 {
-	return { type:"char", value:s, print:function() { return "char:'"+this.value+"'"; } }
+	return { type:"char", value:s, print:function() { return "char:'"+this.value+"'"; }, transf:function() { return { name:("char:'" + this.value + "'"), children:[]} } }
 }
 
 function _tl_tree(t, n, c)
@@ -43,6 +47,19 @@ function _tl_tree(t, n, c)
 					s += this.children[i].print()
 			}
 			return s + ")"
+		},
+		transf:function()
+		{
+			if (this.type == "list" && this.children.length == 1)
+				return this.children[0].transf()
+			var children = this.children.length == 1 && this.children[0] != undefined && this.children[0].type == "list" ? this.children[0].children : this.children
+			var childs = []
+			for (var i = 0; i < children.length; i++)
+				if (children[i] == undefined)
+					childs.push({name:"<NULL>", children:[]})
+				else
+					childs.push(children[i].transf())
+			return { name:(this.type == "tree" ? this.name : "LIST"), children:childs }
 		}
 	}
 }
@@ -786,6 +803,8 @@ function parse_grammar_input()
  if (grammar_tree == false)
  {
  	document.P.grammar_error.value = report_expecting()
+ 	document.P.output.value = "(grammar has errors)"
+ 	d3Tree({ name:"<Grammar has errors>", children:[] })
  	return
  }
 
@@ -849,21 +868,40 @@ function parse_grammar_input()
  parse_input()
 }
 
+var input_tree = undefined
+
+function countAtMost20(t)
+{
+	var nr = 1
+	if (t != undefined && t.children != undefined)
+		for (var i = 0; i < t.children.length; i++)
+		{
+			nr += countAtMost20(t.children[i])
+			if (nr >= 20)
+				break;
+		}
+	return nr;
+}
 
 function parse_input()
 {
 	if (the_grammar == undefined)
 	{
 		document.P.output.value = "(grammar has errors)"
+		d3Tree({ name:"<Grammar has errors>", children:[] })
+		showTree()
 		return
 	}
-	var input_tree = parse_text(document.P.input.value, the_grammar)
+	input_tree = parse_text(document.P.input.value, the_grammar)
 	if (input_tree == false)
 	{
 		document.P.output.value = report_expecting()
+		d3Tree({ name:"<input has errors>", children:[] })
 		return
 	}
 	document.P.output.value = input_tree != undefined ? input_tree.print() : ""
+	if (input_tree == undefined || countAtMost20(input_tree) <= 20)
+		showTree()
 }
 
 
@@ -871,6 +909,25 @@ function spaces(i)
 {var r="";
  while(i>0){i-=1;r+=" ";}
  return r;
+}
+
+function printx(v)
+{
+	var s = "(name:"+v.name+",["
+	if (v.children == undefined)
+		s += "undefined"
+	for (var i = 0; i < v.children.length; i++)
+	{
+		if (i > 0)
+			s += ","
+		s += printx(v.children[i])
+	}
+	return s + "]"
+}
+function showTree()
+{
+	//document.P.output.value = printx(input_tree.transf())
+	d3Tree(input_tree == undefined ? { name:"<NULL>", children:[] } : input_tree == false ? { name:"<input has errors>", children:[] } : input_tree.transf() )
 }
 
 // -->
@@ -896,6 +953,12 @@ gives immediate response to the grammar and input being entered.
 <P>
 This was created as part of <A HREF="https://fransfaase.github.io/ParserWorkshop/"
 >an online workshop</A> on parsing.
+The code for showing the syntax tree is based on <A HREF="http://christos-c.com/treeviewer/"
+>Syntactic Tree Viewer</A> by <A HREF="http://christos-c.com/">Christos
+Christodoulopoulos</A>, which makes use of <A HREF="https://d3js.org/"
+>d3.js</A> and itself is inspired by <A HREF="https://gist.github.com/robschmuecker/7880033"
+>D3.js Drag and Drop Zoomable Tree</A> by <A HREF="https://gist.github.com/robschmuecker"
+>Rob Schmuecker</A>.
 
 <H2><A NAME="grammar">Grammar description</A></H2>
 
@@ -1041,6 +1104,14 @@ The input to be parsed by the grammar:<BR>
 <TEXTAREA NAME="output" ROWS="20" COLS="80"></TEXTAREA>
 <P>
 <INPUT TYPE="button" VALUE="execute" ONCLICK="parse_grammar_input()">
+<INPUT TYPE="button" VALUE="show tree" ONCLICK="return showTree();">
+<P>
+<DIV ID="tree-container"></DIV>
+<SCRIPT>
+<!--
+parse_grammar_input()
+//-->
+</SCRIPT>
 <!--
 <P>
 Output generated by IParse:<BR>
