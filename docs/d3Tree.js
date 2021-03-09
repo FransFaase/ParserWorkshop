@@ -10,13 +10,13 @@ function d3Tree(treeData) {
     var duration = 450;
     var root;
 	
+	var treeContainer = document.getElementById('tree-container')
     // size of the diagram
-	var pageWidth = $(document).width();
-    var viewerWidth = pageWidth - (0.2 * pageWidth);
-    var viewerHeight = 500;
+    var viewerWidth = treeContainer.offsetWidth - 1;
+    var viewerHeight = treeContainer.offsetHeight;
 
     var tree = d3.layout.tree()
-        .size([viewerWidth-20, viewerHeight]);
+        .size([viewerWidth, viewerHeight]);
 
     // define a d3 diagonal projection for use by the node paths later on.
     var diagonal = d3.svg.diagonal()
@@ -265,21 +265,15 @@ function d3Tree(treeData) {
         // Enter any new links at the parent's previous position.
         link.enter().insert("path", "g")
             .attr("class", "link")
-			//TODO MARKERS LOOK TERRIBLE
-			// .attr("marker-end", "url(#markerArrow)")
             .attr("d", function(d) {
                 var o = {x: source.x, y: source.y};
                 return diagonal({source: o,target: o});
             });
-			// TODO doesn't work with the transition
-			// .attr("d", straightLine);
 
         // Transition links to their new position.
         link.transition()
             .duration(duration)
             .attr("d", diagonal);
-			// TODO doesn't work with the transition
-            // .attr("d", straightLine);
 
         // Transition exiting nodes to the parent's new position.
         link.exit().transition()
@@ -288,8 +282,6 @@ function d3Tree(treeData) {
                 var o = {x: source.x, y: source.y};
                 return diagonal({source: o,target: o});
             })
-			// TODO doesn't work with the transition
-			// .attr("d", straightLine)
             .remove();
 
         // Stash the old positions for transition.
