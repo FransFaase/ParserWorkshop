@@ -931,6 +931,132 @@ function showTree()
 	d3Tree(input_tree == undefined ? { name:"<NULL>" } : input_tree == false ? { name:"<input has errors>" } : input_tree.transf() )
 }
 
+function eval_ast()
+{
+	var vars = []
+	var gresult = ""
+	var error_msg = undefined
+	var eval = function(ast)
+	{
+		if (ast == undefined) return undefined
+		if (ast.type == "int" || ast.type == "double" || ast.type == "string" || ast.type == "char") return ast.value
+		if (ast.type == "ident")
+		{
+			for (var i = 0; i < vars.length; i++)
+				if (vars[i].name == ast.value)
+					return vars[i].value
+			return undefined
+		}
+		if (ast.children == undefined) return undefined
+		if (ast.type == "list")
+		{
+			var s = 0
+			for (var i = 0; i < ast.children.length; i++)
+				s = eval(ast.children[i])
+			return s
+		}
+		if (ast.type == "tree")
+		{
+			if (ast.name == "add") return ast.children.length == 2 ? eval(ast.children[0]) + eval(ast.children[1]) : undefined
+			if (ast.name == "sub") return ast.children.length == 2 ? eval(ast.children[0]) - eval(ast.children[1]) : undefined
+			if (ast.name == "times") return ast.children.length == 2 ? eval(ast.children[0]) * eval(ast.children[1]) : undefined
+			if (ast.name == "div") return ast.children.length == 2 ? eval(ast.children[0]) / eval(ast.children[1]) : undefined
+			if (ast.name == "mod") return ast.children.length == 2 ? eval(ast.children[0]) % eval(ast.children[1]) : undefined
+			if (ast.name == "sum")
+			{
+				var childs = (ast.children.length == 1 && ast.children[0] != undefined && ast.children[0].type == "list") ? ast.children[0].children : ast.children
+				var s = 0
+				for (var i = 0; i < childs.length; i++)
+					s += eval(childs[i])
+				return s
+			}
+			if (ast.name == "multiply")
+			{
+				var childs = (ast.children.length == 1 && ast.children[0] != undefined && ast.children[0].type == "list") ? ast.children[0].children : ast.children
+				var s = 1
+				for (var i = 0; i < childs.length; i++)
+					s *= eval(childs[i])
+				return s
+			}
+			if (ast.name == "le") return ast.children.length == 2 ? eval(ast.children[0]) < eval(ast.children[1]) : undefined
+			if (ast.name == "lt") return ast.children.length == 2 ? eval(ast.children[0]) <= eval(ast.children[1]) : undefined
+			if (ast.name == "ge") return ast.children.length == 2 ? eval(ast.children[0]) > eval(ast.children[1]) : undefined
+			if (ast.name == "gt") return ast.children.length == 2 ? eval(ast.children[0]) >= eval(ast.children[1]) : undefined
+			if (ast.name == "eq") return ast.children.length == 2 ? eval(ast.children[0]) == eval(ast.children[1]) : undefined
+			if (ast.name == "ne") return ast.children.length == 2 ? eval(ast.children[0]) != eval(ast.children[1]) : undefined
+			if (ast.name == "and") return ast.children.length == 2 ? eval(ast.children[0]) && eval(ast.children[1]) : undefined
+			if (ast.name == "or") return ast.children.length == 2 ? eval(ast.children[0]) || eval(ast.children[1]) : undefined
+			if (ast.name == "not") return ast.children.length == 1 ? !eval(ast.children[0]) : undefined
+			if (ast.name == "ass")
+			{
+				if (ast.children.length != 2) return undefined
+				if (ast.children[0].type != "ident") return undefined
+				var n = ast.children[0].value
+				var v = eval(ast.children[1])
+				for (var i = 0; i < vars.length; i++)
+					if (vars[i].name == n)
+					{
+						vars[i].value = v
+						return v
+					}
+				vars.push({ name:n, value:v })
+				return v
+			}
+			if (ast.name == "assto")
+			{
+				if (ast.children.length != 2) return undefined
+				if (ast.children[1].type != "ident") return undefined
+				var n = ast.children[1].value
+				var v = eval(ast.children[0])
+				for (var i = 0; i < vars.length; i++)
+					if (vars[i].name == n)
+					{
+						vars[i].value = v
+						return v
+					}
+				vars.push({ name:n, value:v })
+				return v
+			}
+			if (ast.name == "print")
+			{
+				if (ast.children.length != 1) return undefined
+				var v = eval(ast.children[0])
+				gresult += v + "\n"
+				return v
+			}
+			if (ast.name == "ifthenelse")
+			{
+				if (ast.children.length != 3) return undefined
+				return eval(ast.children[0]) == true ? eval(ast.children[1]) : eval(ast.children[2])
+			}
+			if (ast.name == "whenotherwise")
+			{
+				if (ast.children.length != 3) return undefined
+				return eval(ast.children[1]) == true ? eval(ast.children[0]) : eval(ast.children[2])
+			}
+			if (ast.name == "while")
+			{
+				if (ast.children.length != 2) return undefined
+				var s = undefined
+				while (eval(ast.children[0]) == true)
+					s = eval(ast.children[1])
+				return s
+			}
+			if (ast.name == "defaultsto")
+			{
+				if (ast.children.length != 2) return undefined
+				var v = eval(ast.children[0])
+				return v != undefined ? v : eval(ast.children[1])
+			}
+		}
+		return undefined
+	}
+	var result = eval(input_tree)
+	if (error_msg != undefined)
+		document.P.output.value = error_msg
+	else
+		document.P.output.value = (gresult == "") ? result : gresult
+}
 // -->
 </SCRIPT>
 
@@ -950,10 +1076,14 @@ and use it to parse some input. It can be a helpful tool in developping a
 grammar and testing it agains example input. The parser is a reimplementation
 of (a subset of) <A HREF="https://github.com/FransFaase/IParse">IParse</A>, an
 interpretting parser, in JavaScript and responds to keystrokes, which
-gives immediate response to the grammar and input being entered.
+gives immediate response to the grammar and input being entered. The abstract
+syntax tree is displayed as a tree. For demonstration purposes, an
+<A HREF="#eval">evaluator</A> for a limited set of language constructs has
+been added, such that expression represented by the abstract syntax tree can
+be evaluated and some basic control flow statement can be executed. 
 <P>
-This was created as part of <A HREF="https://fransfaase.github.io/ParserWorkshop/"
->an online workshop</A> on parsing which will be start on
+This was created for <A HREF="https://fransfaase.github.io/ParserWorkshop/"
+>an online workshop</A> on parsing which will be held on
 <SCRIPT><!--
 document.write(new Date("2021-03-20T13:00:00.000Z").toString())
 //--></SCRIPT>
@@ -1112,6 +1242,8 @@ The input to be parsed by the grammar:<BR>
 <P>
 <INPUT TYPE="button" VALUE="execute" ONCLICK="parse_grammar_input()">
 <INPUT TYPE="button" VALUE="show tree" ONCLICK="return showTree();">
+<INPUT TYPE="button" VALUE="evaluate" ONCLICK="eval_ast()">
+<A HREF="#eval">help</A>
 <P>
 <DIV ID="tree-container" STYLE="width: auto; height: 500px"></DIV>
 <SCRIPT>
@@ -1119,6 +1251,104 @@ The input to be parsed by the grammar:<BR>
 parse_grammar_input()
 //-->
 </SCRIPT>
+<P>
+<H3><A NAME="eval">Abstract syntax tree evaluator</A></H3>
+
+When the 'evaluate' button clicked the abstract syntax tree is evaluated
+according to the labels attached to the nodes and the basic values. Below the
+supported labels are mentioned and their function is explained:
+<UL>
+<LI><TT>add</TT>: Add the values of the two child nodes.
+<LI><TT>sub</TT>: Substract the values of the two child nodes.
+<LI><TT>times</TT>: Multiplies the values of the two child nodes.
+<LI><TT>div</TT>: Divides the values of the two child nodes.
+<LI><TT>min</TT>: Minus the value of the one child node.
+<LI><TT>mod</TT>: Modulo of the value of the two child nodes.
+<LI><TT>sum</TT>: Sums the values of the child nodes.
+<LI><TT>multiply</TT>: Multiplies the values of the child nodes.
+<LI><TT>lt</TT>: True if the value of the left node is smaller than the value of the right value.
+<LI><TT>le</TT>: True if the value of the left node is smaller or equal than the value of the right value.
+<LI><TT>gt</TT>: True if the value of the left node is greater than the value of the right value.
+<LI><TT>ge</TT>: True if the value of the left node is greater or equal than the value of the right value.
+<LI><TT>eq</TT>: True if the value of the left node is equal to the value of the right value.
+<LI><TT>ne</TT>: True if the value of the left node is not equal to the value of the right value.
+<LI><TT>and</TT>: True if the values of the two child nodes are true.
+<LI><TT>or</TT>: True if at least on of the values of the two child nodes is true.
+<LI><TT>not</TT>: True if the value of the one child node is not true.
+<LI><TT>ass</TT>: Assigns the value of the second node to the variable named by the first node.
+<LI><TT>assto</TT>: Assigns the value of the first node to the variable named by the second node.
+<LI><TT>ifthenelse</TT>: If the value of the first node is true, the second node is evaluated, otherwise the third
+<LI><TT>whenotherwise</TT>: If the value of the second node is true, the first node is evaluated, otherwise the third.
+<LI><TT>while</TT>: While the value of the first nodes evaluates to true, the second node is evaluated.
+<LI><TT>print</TT>: Prints the value of the only child node on a new line.
+<LI><TT>LIST</TT>: Evaluates the child nodes and returns the value of the last node.
+<LI><TT>defaultsto</TT>: Returns the value of the first node, unless it is undefined, then the value of the second node is returned.
+</UL>
+The result of the evaluation (and the result of print statements) is displayed in the output text area.
+<P>
+An example grammar using the above labels is:
+<PRE>
+root : statement SEQ OPT .
+statement
+	: ident "=" expr ";" [ass]
+	| "if" expr "then" statement SEQ OPT "else" statement SEQ OPT "fi" [ifthenelse]
+	| "while" expr "do" statement SEQ OPT "od" [while]
+	| "print" expr ";" [print]
+	| expr ";"
+	.
+	
+primary_expr
+        : ident
+        | int
+        | char
+        | string
+        | "(" expr ")"
+        .
+
+unary_expr
+        : "!" primary_expr [not]
+        | "-" primary_expr [min]
+        | primary_expr
+        .
+
+l_expr1 : l_expr1 "*" unary_expr  [times]
+        | l_expr1 "/" unary_expr  [div]
+        | l_expr1 "%" unary_expr  [mod]
+        | unary_expr
+        .
+l_expr2 : l_expr2 "+" l_expr1  [add]
+        | l_expr2 "-" l_expr1  [sub]
+        | l_expr1 
+        .
+l_expr3 : l_expr3 "&lt;=" l_expr2  [le]
+        | l_expr3 "&gt;=" l_expr2  [ge]
+        | l_expr3 "&lt;"  l_expr2  [lt]
+        | l_expr3 "&gt;"  l_expr2  [gt]
+        | l_expr3 "==" l_expr2  [eq]
+        | l_expr3 "!=" l_expr2  [ne]
+        | l_expr2
+        .
+l_expr4 : l_expr4 "&amp;&amp;" l_expr3 [land]  | l_expr3 .
+l_expr5 : l_expr5 "||" l_expr4 [lor] | l_expr4 .
+
+expr
+        : l_expr5 "?" l_expr5 ":" expr  [ifthenelse]
+        | l_expr5
+        .	
+</PRE>
+An example program in this language, for calculating the <A HREF="https://en.wikipedia.org/wiki/Greatest_common_divisor"
+>greatest common divisor</A> of 345 and 555, is:
+<PRE>
+a = 345;
+b = 555;
+while b != 0
+do
+   c = a % b;
+   a = b;
+   b = c;
+od
+print a;
+</PRE>
 <!--
 <P>
 Output generated by IParse:<BR>
@@ -1133,5 +1363,6 @@ var svgtree = document.getElementById("tree")
 svgtree.innerHTML = "<rect width=\"60\" height=\"20\" fill=\"#eee\"></rect><text font-size=\"5px\" x=\"2\" y=\"8\">Inline SVG</text>"
 //- -></SCRIPT>
 -->
-
+<HR>
+<A HREF="https://www.iwriteiam.nl/">Home page with email address</A>
 </BODY></HTML>
