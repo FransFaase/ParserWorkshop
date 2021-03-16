@@ -593,7 +593,8 @@ function parse_nt(non_term, rtree, grammar)
 		}
 		return false
 	}
-	c.pos = pos
+	var start_pos = pos
+	c.pos = start_pos
 	c.success = false
 	for (var i = 0; i < non_term.normal.length; i++)
 		if (parse_rule(non_term.normal[i].rule, undefined, non_term.normal[i].tree_name, rtree, grammar))
@@ -611,6 +612,7 @@ function parse_nt(non_term, rtree, grammar)
 				}
 			}
 			
+			c.pos = start_pos
 			c.success = true
 			c.endsp = save_pos()
 			c.result = rtree.result
