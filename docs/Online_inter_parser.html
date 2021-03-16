@@ -978,6 +978,7 @@ function eval_ast()
 					s *= eval(childs[i])
 				return s
 			}
+			if (ast.name == "min") return ast.children.length == 1 ? -eval(ast.children[0]) : undefined
 			if (ast.name == "le") return ast.children.length == 2 ? eval(ast.children[0]) < eval(ast.children[1]) : undefined
 			if (ast.name == "lt") return ast.children.length == 2 ? eval(ast.children[0]) <= eval(ast.children[1]) : undefined
 			if (ast.name == "ge") return ast.children.length == 2 ? eval(ast.children[0]) > eval(ast.children[1]) : undefined
@@ -1022,6 +1023,14 @@ function eval_ast()
 				if (ast.children.length != 1) return undefined
 				var v = eval(ast.children[0])
 				gresult += v + "\n"
+				return v
+			}
+			if (ast.name == "prompt")
+			{
+				if (ast.children.length != 1) return undefined
+				var msg = eval(ast.children[0])
+				var v = prompt(msg)
+				if (/^[-+]?(\d+|Infinity)$/.test(v)) v = Number(v)
 				return v
 			}
 			if (ast.name == "ifthenelse")
@@ -1069,15 +1078,15 @@ This page requires <B>JavaScript</B> to be enabled.
 </FONT>
 </NOSCRIPT>
 
-<H1>Interactive parser</H1>
+<H1><A NAME="iparser">Interactive parser</A></H1>
 
-This page gives an interactive parser, which allows you to enter a grammar
-and use it to parse some input. It can be a helpful tool in developping a
-grammar and testing it agains example input. The parser is a reimplementation
-of (a subset of) <A HREF="https://github.com/FransFaase/IParse">IParse</A>, an
-interpretting parser, in JavaScript and responds to keystrokes, which
-gives immediate response to the grammar and input being entered. The abstract
-syntax tree is displayed as a tree. For demonstration purposes, an
+This page gives <A NAME="#iparser">an interactive parser</A>, which allows you
+to enter a grammar and use it to parse some input. It can be a helpful tool in
+developping a grammar and testing it agains example input. The parser is a
+reimplementation of (a subset of) <A HREF="https://github.com/FransFaase/IParse"
+>IParse</A>, an interpretting parser, in JavaScript and responds to keystrokes,
+which gives immediate response to the grammar and input being entered. The
+abstract syntax tree is displayed as a tree. For demonstration purposes, an
 <A HREF="#eval">evaluator</A> for a limited set of language constructs has
 been added, such that expression represented by the abstract syntax tree can
 be evaluated and some basic control flow statement can be executed. 
@@ -1088,8 +1097,10 @@ This was created for <A HREF="https://fransfaase.github.io/ParserWorkshop/"
 document.write(new Date("2021-03-20T13:00:00.000Z").toString())
 //--></SCRIPT>
 and can be followed <A HREF="https://bbb.do.speakup.nl/b/dav-fxz-fhn"
->here</A>.
+>here</A>. (The workshop will be recorded and posted here afterwards.)
 <P>
+The source code can be found <A HREF="https://github.com/FransFaase/ParserWorkshop"
+>here</A>.
 The code for showing the syntax tree is based on <A HREF="http://christos-c.com/treeviewer/"
 >Syntactic Tree Viewer</A> by <A HREF="http://christos-c.com/">Christos
 Christodoulopoulos</A>, which makes use of <A HREF="https://d3js.org/"
@@ -1109,7 +1120,7 @@ the <TT>root</TT> non-terminal, which is the non-terminal that is used to parse
 the whole input. After the colon the elements of the production rule are given.
 The element can be terminals and non-terminals. In this case it consists of three
 terminals. At the end of the production rule a period is placed. There are
-three predefined terminals defined:
+four predefined terminals defined:
 <UL>
 <LI><TT>int</TT>: parses a whole number
 <LI><TT>ident</TT>: parses a identifier, starting with an alphabetic character
@@ -1135,8 +1146,13 @@ two extra non-terminal and two additional production rule for those
 non-terminals:
 <PRE>
 root : first rest .
-first : int
+first : int .
 rest : ident string .
+</PRE>
+<P>
+But this does affect the abstract syntax tree, which now will look like:
+<PRE>
+(int:123,(ident:abc,string:"test ?*"))
 </PRE>
 <P>
 To parse input that consists of the keyword <TT>if</TT> followed by an
@@ -1153,7 +1169,7 @@ as a valid identifier. An example of input that should parse correctly is:
 if ( a )
 </PRE>
 The following input is not parsed correctly, because although it starts with
-<TT>if</TT> it does not start with an identifier that is equal to <TT>if</TT>
+<TT>if</TT> it does not start with an identifier that is equal to <TT>if</TT>.
 <PRE>
 iff ( a )
 </PRE>
@@ -1196,12 +1212,13 @@ This will parse an input like:
 <PRE>
 ad, 4, 5, gh, jk
 </PRE>
-This grammar rule shows the use of brackets to group elements and the
+The grammar rule above also shows the use of brackets to group elements and the
 vertical bar character to separate alternatives. The vertical bar can also
 be used to combine several production rules for one non-terminal together.
 <P>
 When the input parses correctly, an abstract syntax tree is displayed in the
-text area to the right of the input. To annotate this abstract syntax tree, it
+text area to the right of the input in textual form and as a tree in the area
+below it. To annotate this abstract syntax tree, it
 is possible to annotate the production rules with identifiers between square
 brackets. An example of this is given in the grammar below, a grammar for
 simple expressions to add, multiply, and divide numbers:
@@ -1229,7 +1246,9 @@ Below you can enter a grammar and some input to be parsed according to the
 grammar. On the left are the input text areas. At every keystroke (or clicking
 the execute button) the grammar will be parsed and if it is without errors,
 the input below is parsed according to the given grammar. Errors and results
-are shown in the text areas on the right.
+are shown in the text areas on the right. If the abstract syntax tree gets
+large, the button 'show tree' needs to be clicked to show it. The button
+'evaluate' will acitvate the evaluator described <A HREF="#eval">below</A>.
 <P>
 <FORM NAME="P">
 Enter the grammar:<BR>
@@ -1243,7 +1262,6 @@ The input to be parsed by the grammar:<BR>
 <INPUT TYPE="button" VALUE="execute" ONCLICK="parse_grammar_input()">
 <INPUT TYPE="button" VALUE="show tree" ONCLICK="return showTree();">
 <INPUT TYPE="button" VALUE="evaluate" ONCLICK="eval_ast()">
-<A HREF="#eval">help</A>
 <P>
 <DIV ID="tree-container" STYLE="width: auto; height: 500px"></DIV>
 <SCRIPT>
@@ -1254,9 +1272,9 @@ parse_grammar_input()
 <P>
 <H3><A NAME="eval">Abstract syntax tree evaluator</A></H3>
 
-When the 'evaluate' button clicked the abstract syntax tree is evaluated
-according to the labels attached to the nodes and the basic values. Below the
-supported labels are mentioned and their function is explained:
+When the 'evaluate' button is clicked, the abstract syntax tree is evaluated
+according to the annotations of the nodes and the basic values. Below the
+supported annotations are mentioned and their function is explained:
 <UL>
 <LI><TT>add</TT>: Add the values of the two child nodes.
 <LI><TT>sub</TT>: Substract the values of the two child nodes.
@@ -1281,12 +1299,13 @@ supported labels are mentioned and their function is explained:
 <LI><TT>whenotherwise</TT>: If the value of the second node is true, the first node is evaluated, otherwise the third.
 <LI><TT>while</TT>: While the value of the first nodes evaluates to true, the second node is evaluated.
 <LI><TT>print</TT>: Prints the value of the only child node on a new line.
+<LI><TT>prompt</TT>: Prompts the user for a value displaying the text value of the only child node. 
 <LI><TT>LIST</TT>: Evaluates the child nodes and returns the value of the last node.
 <LI><TT>defaultsto</TT>: Returns the value of the first node, unless it is undefined, then the value of the second node is returned.
 </UL>
 The result of the evaluation (and the result of print statements) is displayed in the output text area.
 <P>
-An example grammar using the above labels is:
+An example grammar using the above annotations is:
 <PRE>
 root : statement SEQ OPT .
 statement
@@ -1349,20 +1368,8 @@ do
 od
 print a;
 </PRE>
-<!--
-<P>
-Output generated by IParse:<BR>
-<P>
-</FORM>
-
-<SVG VIEWBOX="0 0 60 20" ID="tree">
-<P>
-Text
-<SCRIPT><!- -
-var svgtree = document.getElementById("tree")
-svgtree.innerHTML = "<rect width=\"60\" height=\"20\" fill=\"#eee\"></rect><text font-size=\"5px\" x=\"2\" y=\"8\">Inline SVG</text>"
-//- -></SCRIPT>
--->
 <HR>
-<A HREF="https://www.iwriteiam.nl/">Home page with email address</A>
+Author: <a href="https://www.iwriteiam.nl/Frans.html">Frans</a><br>
+<a href="https://www.iwriteiam.nl/">Personal website</a><br>
+<a href="https://www.iwriteiam.nl/index.html#email">email address</a>
 </BODY></HTML>
