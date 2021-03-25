@@ -1,8 +1,7 @@
 # Workshop: A modern approach to parsing
 
 This workshop was held online on March 20, 2021 as part of the CyberSaturdays of
-[TkkrLab](https://tkkrlab.nl/). <A HREF="https://youtu.be/KxAjxg4yPRM">The recording
-of the workshop</A>.
+[TkkrLab](https://tkkrlab.nl/). [The recording of the workshop](https://youtu.be/KxAjxg4yPRM).
 
 The workshop consists of:
 * [Introduction and history of parsing](https://fransfaase.github.io/ParserWorkshop/index.html#intro)
@@ -12,8 +11,8 @@ The workshop consists of:
 
 Afterwards, I was a little disappointed about the workshop,
 because it turned out to be more of a lecture. I also realized that I should have
-started with the expression example, which <A HREF="https://youtu.be/KxAjxg4yPRM?t=1342"
->starts around 22:22</A> and from their explain priorities, show the abstract
+started with the expression example, which [starts around 22:22](https://youtu.be/KxAjxg4yPRM?t=1342)
+and from their explain priorities, show the abstract
 syntax tree, and explain how to develop the grammar in a number of steps. And
 this followed by some more about the history of parsing and how I came to
 develop IParse. (There were also some technical issues with the sound, which
